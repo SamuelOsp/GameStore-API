@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NeoGame Store | Tienda Oficial</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  
+  <style>
+    :root { --neon-primary: #00f3ff; --bg-dark: #0a0a12; --card-bg: #161621; }
+    body { background-color: var(--bg-dark); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; }
+    
+    .navbar { background: rgba(22, 22, 33, 0.95); border-bottom: 1px solid #333; }
+    .brand-icon { color: var(--neon-primary); font-size: 1.5rem; }
+    
+    .card { background-color: var(--card-bg); border: none; transition: transform 0.3s, box-shadow 0.3s; border-radius: 12px; overflow: hidden; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 243, 255, 0.15); }
+    .card-img-top { height: 250px; object-fit: cover; }
+    .card-title { color: #fff; font-weight: 700; }
+    .badge-discount { background-color: var(--neon-primary); color: #000; font-weight: bold; position: absolute; top: 10px; right: 10px; }
+    
+    .price-final { color: var(--neon-primary); font-size: 1.25rem; font-weight: bold; }
+    .price-original { text-decoration: line-through; color: #666; font-size: 0.9rem; margin-left: 8px; }
+    
+    .btn-neon { background-color: transparent; border: 2px solid var(--neon-primary); color: var(--neon-primary); font-weight: 600; width: 100%; transition: all 0.3s; }
+    .btn-neon:hover { background-color: var(--neon-primary); color: #000; box-shadow: 0 0 15px var(--neon-primary); }
+    
+    .cart-badge { position: absolute; top: 0; right: 0; transform: translate(25%, -25%); font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <i class="bi bi-controller brand-icon"></i> NeoGame Store
+      </a>
+      
+      <div class="d-flex ms-auto gap-3 align-items-center">
+        
+        <button id="btnLogin" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#loginModal">
+            <i class="bi bi-person-circle"></i> Iniciar Sesión
+        </button>
+
+        <div id="userZone" class="d-none align-items-center gap-2">
+            <span id="userNameDisplay" class="text-info fw-bold"><i class="bi bi-person-check-fill"></i> Hola, Usuario</span>
+            
+            <button class="btn btn-outline-danger btn-sm" onclick="cerrarSesion()" title="Cerrar Sesión">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </div>
+
+        <button class="btn btn-outline-light position-relative" data-bs-toggle="modal" data-bs-target="#cartModal">
+          <i class="bi bi-cart3"></i>
+          <span id="cartCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            0
+          </span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <header class="container py-5 text-center">
+    <h1 class="display-4 fw-bold text-white">Listado de Videojuegos</h1>
+    <p class="lead text-secondary">Las mejores ofertas en tiempo real.</p>
+  </header>
+
+  <main class="container pb-5">
+    <div class="row g-4">
+      <div class="col-12 col-md-6 col-lg-4" th:each="vj : ${videojuegos}">
+        <div class="card h-100">
+          <span class="badge badge-discount" th:if="${vj.descuento > 0}" th:text="'-' + ${vj.descuento} + '%'"></span>
+          
+          <img th:src="${vj.imagenUrl}" class="card-img-top" alt="Portada">
+          
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title" th:text="${vj.nombre}">Nombre Juego</h5>
+            
+            <div class="mb-2">
+               <span class="badge bg-secondary" th:text="${vj.plataforma}">PS5</span>
+               <span class="text-warning ms-2"><i class="bi bi-star-fill"></i> <span th:text="${vj.rating}"></span></span>
+            </div>
+            
+            <p class="card-text text-secondary small flex-grow-1" th:text="${vj.descripcion}"></p>
+            
+            <div class="mt-3">
+              <div class="d-flex align-items-center mb-2">
+                 <span class="price-final" th:text="'$' + ${#numbers.formatDecimal(vj.precioConDescuento, 0, 'COMMA', 0, 'POINT')}"></span>
+                 <span class="price-original" th:if="${vj.descuento > 0}" th:text="'$' + ${#numbers.formatDecimal(vj.precio, 0, 'COMMA', 0, 'POINT')}"></span>
+              </div>
+              
+              <div th:if="${vj.stock > 0}">
+                  <p class="text-success small mb-2"><i class="bi bi-box-seam-fill"></i> Disponibles: <span th:text="${vj.stock}"></span></p>
+                  
+                  <button class="btn btn-neon add-to-cart" 
+                          th:attr="data-id=${vj.id}, data-name=${vj.nombre}, data-price=${vj.precioConDescuento}, data-img=${vj.imagenUrl}">
+                    <i class="bi bi-cart-plus"></i> Añadir al carrito
+                  </button>
+              </div>
+
+              <div th:unless="${vj.stock > 0}">
+                  <p class="text-danger small mb-2"><i class="bi bi-slash-circle"></i> Agotado</p>
+                  <button class="btn btn-secondary w-100" disabled>
+                      Sin Stock
+                  </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="cartModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark text-white border-secondary">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title"><i class="bi bi-cart-check"></i> Tu Carrito</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <ul id="cartItems" class="list-group list-group-flush">
+             </ul>
+          <div id="emptyCartMsg" class="text-center py-4 text-secondary">
+             <i class="bi bi-cart-x display-1"></i>
+             <p class="mt-3">Tu carrito está vacío</p>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary justify-content-between">
+          <h4 class="mb-0">Total: <span id="cartTotal" class="text-info">$0</span></h4>
+          <button class="btn btn-success" onclick="checkout()"><i class="bi bi-credit-card"></i> Pagar Ahora</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark text-white border-info">
+        <div class="modal-header border-info">
+          <h5 class="modal-title"><i class="bi bi-person-lock"></i> Acceso de Usuario</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="loginForm">
+            <div class="mb-3">
+              <label class="form-label">Correo Electrónico</label>
+              <input type="email" id="inputEmail" class="form-control bg-secondary text-white border-0" placeholder="admin@neogame.com">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input type="password" class="form-control bg-secondary text-white border-0" placeholder="******">
+            </div>
+            <button type="button" class="btn btn-info w-100 fw-bold" onclick="simularLogin()">Ingresar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi bi-check-circle-fill"></i> Juego añadido al carrito
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    let cart = JSON.parse(localStorage.getItem('neogame_cart')) || [];
+    
+    // --- LÓGICA LOGIN / LOGOUT ACTUALIZADA ---
+    const simularLogin = () => {
+        // 1. Ocultar el modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+        modal.hide();
+        
+        // 2. Leer el correo que escribió el usuario
+        const emailInput = document.getElementById('inputEmail').value;
+        let nombreUsuario = "Invitado"; // Nombre por defecto
+
+        // 3. Verificar quién es (Simulación basada en tus datos de Java)
+        if (emailInput === "admin@neogame.com") {
+            nombreUsuario = "Samuel Ospina";
+        } else if (emailInput === "maria@gmail.com") {
+            nombreUsuario = "Maria Perez";
+        } else {
+            nombreUsuario = emailInput.split('@')[0]; // Si es otro, usa la parte antes del @
+        }
+
+        // 4. Actualizar el nombre en la barra de navegación
+        const displayNombre = document.getElementById('userNameDisplay');
+        displayNombre.innerHTML = `<i class="bi bi-person-check-fill"></i> Hola, ${nombreUsuario}`;
+
+        // 5. Intercambiar botones (Ocultar login / Mostrar usuario)
+        document.getElementById('btnLogin').classList.add('d-none');
+        const userZone = document.getElementById('userZone');
+        userZone.classList.remove('d-none');
+        userZone.classList.add('d-flex');
+        
+        alert(`¡Bienvenido, ${nombreUsuario}!`);
+    };
+
+    const cerrarSesion = () => {
+        // 1. Ocultar Zona Usuario
+        const userZone = document.getElementById('userZone');
+        userZone.classList.add('d-none');
+        userZone.classList.remove('d-flex');
+        
+        // 2. Mostrar botón Login
+        document.getElementById('btnLogin').classList.remove('d-none');
+        
+        // 3. Limpiar campo email
+        document.getElementById('inputEmail').value = '';
+        
+        alert("Has cerrado sesión correctamente.");
+    };
+
+    // --- LÓGICA CARRITO Y COMPRA REAL ---
+    const updateCartUI = () => {
+      const cartList = document.getElementById('cartItems');
+      const emptyMsg = document.getElementById('emptyCartMsg');
+      const totalEl = document.getElementById('cartTotal');
+      const countBadge = document.getElementById('cartCount');
+      
+      cartList.innerHTML = '';
+      let total = 0;
+      
+      if (cart.length === 0) {
+        emptyMsg.style.display = 'block';
+      } else {
+        emptyMsg.style.display = 'none';
+        cart.forEach((item, index) => {
+          total += item.price;
+          const li = document.createElement('li');
+          li.className = 'list-group-item bg-transparent text-white border-secondary d-flex align-items-center gap-3';
+          li.innerHTML = `
+            <img src="${item.img}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+            <div class="flex-grow-1">
+              <h6 class="mb-0">${item.name}</h6>
+              <small class="text-secondary">$${item.price.toLocaleString()}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})"><i class="bi bi-trash"></i></button>
+          `;
+          cartList.appendChild(li);
+        });
+      }
+      
+      totalEl.textContent = '$' + total.toLocaleString();
+      countBadge.textContent = cart.length;
+      localStorage.setItem('neogame_cart', JSON.stringify(cart));
+    };
+
+    const addToCart = (e) => {
+      const btn = e.target.closest('button');
+      const product = {
+        id: btn.dataset.id,
+        name: btn.dataset.name,
+        price: parseFloat(btn.dataset.price),
+        img: btn.dataset.img
+      };
+      
+      cart.push(product);
+      updateCartUI();
+      
+      const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+      toast.show();
+    };
+
+    const removeFromCart = (index) => {
+      cart.splice(index, 1);
+      updateCartUI();
+    };
+
+    const checkout = () => {
+      if(cart.length === 0) {
+        alert("Agrega juegos primero!");
+        return;
+      }
+      
+      const idsCompra = cart.map(item => parseInt(item.id));
+      
+      fetch('/checkout', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(idsCompra)
+      })
+      .then(response => {
+          if(response.ok) {
+              alert(`¡Gracias por tu compra! \nTotal pagado: $${document.getElementById('cartTotal').innerText}`);
+              cart = [];
+              updateCartUI();
+              const modal = bootstrap.Modal.getInstance(document.getElementById('cartModal'));
+              modal.hide();
+              location.reload(); 
+          } else {
+              alert("Hubo un error al procesar la compra.");
+          }
+      })
+      .catch(error => console.error('Error:', error));
+    };
+
+    document.querySelectorAll('.add-to-cart').forEach(btn => {
+      btn.addEventListener('click', addToCart);
+    });
+    
+    updateCartUI();
+  </script>
+</body>
+</html>
