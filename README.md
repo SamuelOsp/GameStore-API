@@ -52,5 +52,3 @@ A professional Spring Boot REST API and Web Application for a modern video game 
 
 **Samuel Ospina** - *Junior Developer*
 
----
-*This project was developed for the "Data Analysis 2" course - Semester 6.*
